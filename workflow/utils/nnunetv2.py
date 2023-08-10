@@ -2,6 +2,7 @@ import os
 import typing
 from .logger import logger
 import numpy as np
+import json
 
 from nnunetv2.experiment_planning.plan_and_preprocess_api import (
     extract_fingerprints,
@@ -47,8 +48,31 @@ class Runner:
         
         logger.info('Initialized Runner...')
         
+    def _change_2d_batch_size(
+        self,
+        new_batch_size: int = 2
+    ) -> None:
+        """Modify the nnUNetPlans.json
+
+        Args:
+            new_batch_size (int, optional): Batch size for the 2d config. Defaults to 2.
+        """
+        f_path = os.path.join(
+            self.maindir,
+            PREPROCESSED,
+            DATASET_FULL_NAME,
+            'nnUNetPlans.json'
+        )
+        with open(f_path, 'r') as f:
+            data = json.load(f)
+            data["configurations"]["2d"]["batch_size"] = new_batch_size
+
+        os.remove(f_path)
+        with open(f_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        
     
-    def fingerprints_plan_preprocess(self) -> None:
+    def _fingerprints_plan_preprocess(self) -> None:
         #TODO: could add more options here for more advanced plan+preprocess
         """Perform the fingerprint extraction, plan the experiments (for 4 configs) and preprocess the data
         """
@@ -63,6 +87,9 @@ class Runner:
         logger.info('Planning experiments...')
         plan_experiments(dataset_id_lst)
         
+        logger.info('Changing 2d batch size...')
+        self._change_2d_batch_size()
+        
         logger.info('Preprocessing the data')
         preprocess(dataset_ids=dataset_id_lst,
                    configurations=self.configs,
@@ -70,27 +97,57 @@ class Runner:
                    num_processes=[8,4,8,8]
                    )
         
-    def train(self)->None:
+    def _train(self)->None:
         #TODO: could add more options here for advanced training
         """train all configs over all folds
         """
         for config in configs:
             for fold in np.arange(self.num_folds):
                 logger.info('Training configuration %s at fold %i' % (config, fold))
+                #continue_training = config=='2d' and fold==0
                 run_training(
                     dataset_name_or_id=str(self.dataset_id),
                     configuration=config,
                     fold=fold,
-                    export_validation_probabilities=self.export_val_probs
+                    export_validation_probabilities=self.export_val_probs,
+                    #continue_training = continue_training
                 )
+
+    def _read_json_dict(
+        self,
+        file: str
+    ) -> dict:
+        """Read the provided json file and output the dictionary it contains
+
+        Args:
+            file (str): path to the json file
+
+        Returns:
+            dict: dictionary contained in the json file
+        """
+        if not file.endswith('.json'):
+            logger.exception("Provided file is not json")
+        f = open(file)
+        return json.load(f)
+        
                          
-    def find_best_config(self)->None:
+    def _find_best_config(self)->None:
         #TODO: figure out how (after training) to find the best configuration
         """After training, determines the best configuration for inference
         """
         logger.info('Determining the best configuration')
         find_best_configuration(dataset_name_or_id=str(self.dataset_id))
-        #TODO: need to figure out how to extract the best configuration from the inferences.txt file
+        
+        try:
+            inference_info_json = os.path.join(
+                self.maindir, 
+                RESULTS,
+                DATASET_FULL_NAME,
+                INFERENCE_INFO_JSON
+            )
+            self.best_config = self._read_json_dict(inference_info_json)
+        except:
+            logger.exception("Could not read inference information...")
         
     def predict(self):
         #TODO: figure out how to predict using our best config
@@ -107,8 +164,8 @@ class Runner:
     
     def run(self):
         #TODO: will go through eveyrthing in order
-        self.fingerprints_plan_preprocess()
-        self.train()
-        self.find_best_config()
+        self._fingerprints_plan_preprocess()
+        self._train()
+        self._find_best_config()
     
     
