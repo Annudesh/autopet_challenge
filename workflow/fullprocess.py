@@ -1,5 +1,6 @@
 import os
 from .utils.logger import logger
+from .utils.constants import ENVKEYS
 
 class WorkFlow:
     """ Class to handle data preparation and nnunet training
@@ -31,20 +32,23 @@ class WorkFlow:
         
         logger.info('Compiled input data directory...')
         
-        # from .utils.constants import ENVKEYS
-        # os.environ[ENVKEYS.raw]=self.rawdir
-        # os.environ[ENVKEYS.preprocessed]=self.preprocesseddir
-        # os.environ[ENVKEYS.results]=self.resultsdir
+        os.environ[ENVKEYS.raw]=self.rawdir
+        os.environ[ENVKEYS.preprocessed]=self.preprocesseddir
+        os.environ[ENVKEYS.results]=self.resultsdir
         
-    def nnunetv2(self)->None:
-        """nnunetv2 Run nnunetv2 workflow
+    def nnunetv2(
+        self,
+        default_num_threads='8',
+        default_num_proc_DA='10'
+    )->None:
+        """Run nnunetv2 workflow
+
+        Args:
+            default_num_threads (str, optional): Number of threads. Defaults to '8'.
+            default_num_proc_DA (str, optional): Number of processes. Defaults to '10'.
         """
-        from .utils.constants import ENVKEYS
-        os.environ[ENVKEYS.raw]="/data/blobfuse/maindir/raw"
-        os.environ[ENVKEYS.preprocessed]="/data/blobfuse/maindir/preprocessed"
-        os.environ[ENVKEYS.results]="/data/blobfuse/maindir/results"
-        os.environ['OMP_NUM_THREADS']='8'
-        os.environ['nnUNet_n_proc_DA']='10'
+        os.environ[ENVKEYS.num_threads]=default_num_threads
+        os.environ[ENVKEYS.num_procs]=default_num_proc_DA
         
         logger.info('Running nnunetv2 workflow...')
         

@@ -21,6 +21,8 @@ DATASET_FULL_NAME = 'Dataset'+str(DATASET_ID)+'_'+DATASET_NAME
 FIEXT = '.nii.gz'
 PET = '0000'
 CT = '0001'
+OMP_NUM_THREADS = 'OMP_NUM_THREADS'
+NUM_PROC = 'nnUNet_n_proc_DA'
 
 INFERENCE_INFO_JSON = "inference_information.json"
 
@@ -28,6 +30,8 @@ class ENVKEYS:
     raw = RAW_ENV
     preprocessed = PREPROCESSED_ENV
     results = RESULTS_ENV
+    num_threads = OMP_NUM_THREADS
+    num_procs = NUM_PROC 
     
 
 class MODES:
