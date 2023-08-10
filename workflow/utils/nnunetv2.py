@@ -12,10 +12,6 @@ from nnunetv2.experiment_planning.plan_and_preprocess_api import (
 from nnunetv2.experiment_planning.verify_dataset_integrity import verify_dataset_integrity
 from nnunetv2.run.run_training import run_training
 from nnunetv2.evaluation.find_best_configuration import find_best_configuration
-from nnunetv2.ensembling.ensemble import ensemble_folders
-from nnunetv2.postprocessing.remove_connected_components import apply_postprocessing_to_folder
-from nnunetv2.utilities.file_path_utilities import get_output_folder
-from nnunetv2.inference.predict_from_raw_data import predict_from_raw_data
 
 
 from .constants import *
@@ -149,23 +145,113 @@ class Runner:
         except:
             logger.exception("Could not read inference information...")
         
-    def predict(self):
+        logger.info('Read the best config file')
+        
+    def _predict(
+        self,
+        list_of_lists_or_source_folder: typing.Union[list[list[str]], str],
+        output_folder: str,
+        model_training_output_dir: str,
+    ) -> None:
+        """Predict using the model on the provided input images
+
+        Args:
+            list_of_lists_or_source_folder (typing.Union[list[list[str]], str]): path to input images or list of list of images
+            output_folder (str): where predicted segmentations are saved
+            model_training_output_dir (str): the model directory to use (with folds as subdirectories)
+        """
         #TODO: figure out how to predict using our best config
         logger.info('Predicting on test images...')
-        return ...
+        from nnunetv2.inference.predict_from_raw_data import predict_from_raw_data
         
-    def ensemble(self):
-        #TODO: find how to make an ensemble
-        return ...
-    
-    def postprocess(self):
-        #TODO: find how to use find_best_config to determine the post-processing
-        return ...
+        predict_from_raw_data(
+            list_of_lists_or_source_folder=list_of_lists_or_source_folder, 
+            output_folder=output_folder,
+            model_training_output_dir=model_training_output_dir
+        )
+        
+    def _predict_ensemble_postprocess(
+        self,
+        folds = (0,1,2,3,4)
+    ) -> None:
+        
+        from nnunetv2.ensembling.ensemble import ensemble_folders
+        from nnunetv2.postprocessing.remove_connected_components import apply_postprocessing_to_folder
+        from nnunetv2.utilities.file_path_utilities import get_output_folder
+        
+        input_test_dir: str = os.path.join(
+            self.maindir,
+            RAW,
+            IMGTS
+        )
+        output_pred_dir = os.path.join(
+            self.maindir,
+            RESULTS,
+            DATASET_FULL_NAME
+        )
+
+        run_ensemble = len(self.best_config["best_model_or_ensemble"]["selected_model_or_models"]) > 1
+
+        used_folds = folds
+        
+        output_folders = []
+        for config in self.best_config["best_model_or_ensemble"]["selected_model_or_models"]:
+            output_dir = os.path.join(output_pred_dir, f"pred_{config['configuration']}")
+            output_folders.append(output_dir)
+
+            model_folder = get_output_folder(
+                self.dataset_id,
+                config["trainer"], 
+                config["plans_identifier"], 
+                config["configuration"]
+            )
+            
+            self._predict(
+                list_of_lists_or_source_folder=input_test_dir,
+                output_folder=output_pred_dir,
+                model_training_output_dir=model_folder,
+                use_folds=used_folds,
+                save_probabilities=run_ensemble,
+                verbose=False,
+                overwrite=True
+            )
+
+        if run_ensemble:
+            ensemble_folders(
+                list_of_input_folders=output_folders,
+                output_folder=os.path.join(
+                    output_pred_dir,
+                    "ensemble_predictions"
+                ),
+                save_merged_probabilities=False
+            )
+            folder_for_pp = os.path.join(
+                output_pred_dir,
+                "ensemble_predictions"
+            )
+        else:
+            folder_for_pp = output_folders[0]
+
+        # apply postprocessing
+        from batchgenerators.utilities.file_and_folder_operations import load_pickle
+
+        pp_fns, pp_fn_kwargs = load_pickle(self.best_config["best_model_or_ensemble"]["postprocessing_file"])
+        apply_postprocessing_to_folder(
+            input_folder=folder_for_pp,
+            output_folder=os.path.join(
+                output_pred_dir,
+                "ensemble_predictions_postprocessed"
+            ),
+            pp_fns=pp_fns,
+            pp_fn_kwargs=pp_fn_kwargs,
+            plans_file_or_dict=self.best_config["best_model_or_ensemble"]["some_plans_file"],
+        )
     
     def run(self):
-        #TODO: will go through eveyrthing in order
+        """Run through the whole nnunet process
+        """
         self._fingerprints_plan_preprocess()
         self._train()
         self._find_best_config()
-    
+        self._predict_ensemble_postprocess()
     
