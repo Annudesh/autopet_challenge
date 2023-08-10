@@ -43,8 +43,8 @@ class WorkFlow:
         os.environ[ENVKEYS.raw]="/data/blobfuse/maindir/raw"
         os.environ[ENVKEYS.preprocessed]="/data/blobfuse/maindir/preprocessed"
         os.environ[ENVKEYS.results]="/data/blobfuse/maindir/results"
-        os.environ['OMP_NUM_THREADS']="1"
-        os.environ['nnUNet_n_proc_DA']="0"
+        os.environ['OMP_NUM_THREADS']='8'
+        os.environ['nnUNet_n_proc_DA']='10'
         
         logger.info('Running nnunetv2 workflow...')
         
