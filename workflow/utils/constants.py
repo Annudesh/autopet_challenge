@@ -22,6 +22,8 @@ FIEXT = '.nii.gz'
 PET = '0000'
 CT = '0001'
 
+INFERENCE_INFO_JSON = "inference_information.json"
+
 class ENVKEYS:
     raw = RAW_ENV
     preprocessed = PREPROCESSED_ENV
