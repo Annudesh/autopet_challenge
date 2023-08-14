@@ -44,53 +44,54 @@ class Runner:
         
         logger.info('Initialized Runner...')
         
-    def _change_2d_batch_size(
-        self,
-        new_batch_size: int = 2
-    ) -> None:
-        """Modify the nnUNetPlans.json
+    # def _change_2d_batch_size(
+    #     self,
+    #     new_batch_size: int = 2
+    # ) -> None:
+    #     """Modify the nnUNetPlans.json
 
-        Args:
-            new_batch_size (int, optional): Batch size for the 2d config. Defaults to 2.
-        """
-        f_path = os.path.join(
-            self.maindir,
-            PREPROCESSED,
-            DATASET_FULL_NAME,
-            'nnUNetPlans.json'
-        )
-        with open(f_path, 'r') as f:
-            data = json.load(f)
-            data["configurations"]["2d"]["batch_size"] = new_batch_size
+    #     Args:
+    #         new_batch_size (int, optional): Batch size for the 2d config. Defaults to 2.
+    #     """
+    #     f_path = os.path.join(
+    #         self.maindir,
+    #         PREPROCESSED,
+    #         DATASET_FULL_NAME,
+    #         'nnUNetPlans.json'
+    #     )
+    #     with open(f_path, 'r') as f:
+    #         data = json.load(f)
+    #         data["configurations"]["2d"]["batch_size"] = new_batch_size
 
-        os.remove(f_path)
-        with open(f_path, 'w') as f:
-            json.dump(data, f, indent=4)
+    #     os.remove(f_path)
+    #     with open(f_path, 'w') as f:
+    #         json.dump(data, f, indent=4)
         
     
     def _fingerprints_plan_preprocess(self) -> None:
         #TODO: could add more options here for more advanced plan+preprocess
         """Perform the fingerprint extraction, plan the experiments (for 4 configs) and preprocess the data
         """
-        logger.info('Verifying dataset integrity...')
-        verify_dataset_integrity(os.path.join(self.maindir,
-                                              RAW,
-                                              DATASET_FULL_NAME))
+        # logger.info('Verifying dataset integrity...')
+        # verify_dataset_integrity(os.path.join(self.maindir,
+        #                                       RAW,
+        #                                       DATASET_FULL_NAME))
         dataset_id_lst = [self.dataset_id]
         logger.info('Fingerprint extraction...')
-        extract_fingerprints(dataset_id_lst)
+        extract_fingerprints(dataset_id_lst,
+                             check_dataset_integrity=True)
         
         logger.info('Planning experiments...')
         plan_experiments(dataset_id_lst)
         
-        logger.info('Changing 2d batch size...')
-        self._change_2d_batch_size()
+        # logger.info('Changing 2d batch size...')
+        # self._change_2d_batch_size()
         
         logger.info('Preprocessing the data')
         preprocess(dataset_ids=dataset_id_lst,
                    configurations=self.configs,
                    #TODO: investigate this
-                   num_processes=[8,4,8,8]
+                   num_processes=[4,8,8]
                    )
         
     def _train(self)->None:
@@ -211,9 +212,7 @@ class Runner:
                 output_folder=output_pred_dir,
                 model_training_output_dir=model_folder,
                 use_folds=used_folds,
-                save_probabilities=run_ensemble,
-                verbose=False,
-                overwrite=True
+                save_probabilities=run_ensemble
             )
 
         if run_ensemble:

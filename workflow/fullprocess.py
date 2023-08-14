@@ -19,10 +19,8 @@ class WorkFlow:
         self.datadir = datadir
         self.maindir = maindir
         #os.makedirs(self.maindir)
-        
-        
     
-    def datacompile(self)->None:
+    def _datacompile(self)->None:
         """datacompile Compile the provided input data
         """
         from .utils.datacompile import CompileData
@@ -31,12 +29,11 @@ class WorkFlow:
         self.rawdir, self.preprocesseddir, self.resultsdir = datacompiler.genrawdir()
         
         logger.info('Compiled input data directory...')
-        
         os.environ[ENVKEYS.raw]=self.rawdir
         os.environ[ENVKEYS.preprocessed]=self.preprocesseddir
         os.environ[ENVKEYS.results]=self.resultsdir
         
-    def nnunetv2(
+    def _nnunetv2(
         self,
         default_num_threads='8',
         default_num_proc_DA='10'
@@ -47,6 +44,9 @@ class WorkFlow:
             default_num_threads (str, optional): Number of threads. Defaults to '8'.
             default_num_proc_DA (str, optional): Number of processes. Defaults to '10'.
         """
+        # os.environ[ENVKEYS.raw]="/data/blobfuse/maindir/raw"
+        # os.environ[ENVKEYS.preprocessed]="/data/blobfuse/maindir/preprocessed"
+        # os.environ[ENVKEYS.results]="/data/blobfuse/maindir/results"
         os.environ[ENVKEYS.num_threads]=default_num_threads
         os.environ[ENVKEYS.num_procs]=default_num_proc_DA
         
@@ -59,8 +59,8 @@ class WorkFlow:
     def run(self)->None:
         """run run whole nnunetv2 workflow
         """
-        self.datacompile()
-        self.nnunetv2()
+        self._datacompile()
+        self._nnunetv2()
         
         
         

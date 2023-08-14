@@ -35,13 +35,13 @@ class ENVKEYS:
     
 
 class MODES:
-    M_2D = "2d"
+    #M_2D = "2d"
     M_3D_FULLRES = "3d_fullres"
     M_3D_LOWRES = "3d_lowres"
     M_3D_CASCADE_FULLRES = "3d_cascade_fullres"
 
 configs = [
-    MODES.M_2D,
+    #MODES.M_2D,
     MODES.M_3D_FULLRES,
     MODES.M_3D_LOWRES,
     MODES.M_3D_CASCADE_FULLRES
